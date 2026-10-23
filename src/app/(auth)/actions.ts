@@ -41,8 +41,20 @@ export async function signUp(form: FormData) {
 export async function resetPassword(form: FormData) {
   const email = String(form.get("email") ?? "").trim();
   const supabase = await authClient();
-  await supabase.auth.resetPasswordForEmail(email, { redirectTo: `${env.appUrl()}/auth/callback?next=/app/settings` });
+  await supabase.auth.resetPasswordForEmail(email, { redirectTo: `${env.appUrl()}/auth/callback?next=${encodeURIComponent("/app/settings?reset=1#password")}` });
   back("/login", { ok: "If that email has an account, a reset link is on its way." });
+}
+
+// Used from Settings, and after clicking a password-reset email link (which signs you in).
+export async function changePassword(form: FormData) {
+  const password = String(form.get("password") ?? "");
+  const confirm = String(form.get("confirm") ?? "");
+  if (password.length < 8) back("/app/settings", { error: "Use at least 8 characters for your new password." });
+  if (password !== confirm) back("/app/settings", { error: "The two passwords don't match." });
+  const supabase = await authClient();
+  const { error } = await supabase.auth.updateUser({ password });
+  if (error) back("/app/settings", { error: error.message });
+  back("/app/settings", { ok: "Password changed." });
 }
 
 export async function signOut() {

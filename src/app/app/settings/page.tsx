@@ -9,6 +9,7 @@ import { env } from "@/lib/env";
 import { canEdit, currentWorkspace, requireActiveUser } from "@/lib/session";
 import { effectivePlan, getSettings, periodLabel } from "@/lib/settings";
 import { formatInZone, TIMEZONES } from "@/lib/time";
+import { changePassword } from "../../(auth)/actions";
 import { createLinkCode, removeGeminiKey, saveBrand, saveGeminiKey, unlinkChannel } from "../actions";
 
 export const metadata = { title: "Settings" };
@@ -145,6 +146,15 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
                 <form action={createLinkCode}><Button variant="secondary" className="w-full">Get a link code</Button></form>
               )}
             </div>
+          </Card>
+
+          <Card id="password">
+            <CardHeader title="Password" description={params.reset ? "You're signed in from the reset link. Set a new password now." : undefined} />
+            <form action={changePassword} className="space-y-3 p-5">
+              <Input name="password" type="password" placeholder="New password (8+ characters)" autoComplete="new-password" minLength={8} required />
+              <Input name="confirm" type="password" placeholder="Repeat new password" autoComplete="new-password" minLength={8} required />
+              <SubmitButton variant="secondary" className="w-full" pending="Saving…">Change password</SubmitButton>
+            </form>
           </Card>
 
           <Card id="billing">

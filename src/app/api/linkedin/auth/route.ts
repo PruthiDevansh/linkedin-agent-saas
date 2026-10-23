@@ -18,6 +18,10 @@ export async function GET(request: Request) {
   // The plan's account limit is checked in the callback, where we know whether
   // this is a new LinkedIn profile or a reconnect of an existing one.
 
+  if (!process.env.LINKEDIN_CLIENT_ID?.trim() || !process.env.LINKEDIN_CLIENT_SECRET?.trim()) {
+    return back(profile.role === "admin" ? "LinkedIn isn't set up yet: add LINKEDIN_CLIENT_ID and LINKEDIN_CLIENT_SECRET (see SETUP.md step 5)." : "LinkedIn connection isn't available yet. Please try again later.");
+  }
+
   // CSRF: the state is signed and bound to a random cookie in this browser.
   const nonce = randomBytes(16).toString("hex");
   const state = signToken({ ws, uid: profile.id, nonce }, 600);
