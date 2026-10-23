@@ -7,6 +7,9 @@ import { CATEGORIES, CATEGORY_IDS, categoryForToday } from "@/lib/engine/topics"
 import { currentWorkspace, requireActiveUser } from "@/lib/session";
 import { generateCarousel, generateIdea, generateNews } from "../actions";
 
+// AI writing and LinkedIn uploads can take 20-40s; server actions on this page share this limit.
+export const maxDuration = 60;
+
 export const metadata = { title: "Create" };
 
 const TABS = [

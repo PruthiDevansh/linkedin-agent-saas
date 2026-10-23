@@ -26,6 +26,9 @@ import {
   uploadDraftPhoto,
 } from "../../actions";
 
+// AI writing and LinkedIn uploads can take 20-40s; server actions on this page share this limit.
+export const maxDuration = 60;
+
 export const metadata = { title: "Post" };
 
 export default async function DraftPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<Record<string, string>> }) {

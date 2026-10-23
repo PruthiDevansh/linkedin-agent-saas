@@ -10,6 +10,9 @@ import { effectivePlan, getSettings, periodLabel } from "@/lib/settings";
 import { signOut } from "../(auth)/actions";
 import { saveGeminiKey } from "../app/actions";
 
+// AI writing and LinkedIn uploads can take 20-40s; server actions on this page share this limit.
+export const maxDuration = 60;
+
 export const metadata = { title: "Choose your plan" };
 
 const PRO_FEATURES = ["Premium AI, no key needed", "More daily drafts & LinkedIn accounts", "Carousels, images & best-time scheduling", "Priority support"];

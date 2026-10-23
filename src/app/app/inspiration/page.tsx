@@ -8,6 +8,9 @@ import { CATEGORIES, isCategoryId } from "@/lib/engine/topics";
 import { currentWorkspace, requireActiveUser } from "@/lib/session";
 import { db } from "@/lib/supabase";
 
+// AI writing and LinkedIn uploads can take 20-40s; server actions on this page share this limit.
+export const maxDuration = 60;
+
 export const metadata = { title: "Inspiration" };
 
 const TABS = [

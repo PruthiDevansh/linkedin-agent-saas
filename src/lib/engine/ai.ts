@@ -73,11 +73,11 @@ async function callModel(key: string, model: string, system: string, prompt: str
   return text;
 }
 
-// Main model gets one short chance, then the faster lite model. Max ~55s.
+// Main model gets one short chance, then the faster lite model. Max ~35s, so
+// with news fetching (~10s) a request always fits Vercel's 60s limit.
 async function callAi(key: string, system: string, prompt: string): Promise<unknown> {
   const plan = [
-    { model: env.geminiModel(), timeoutMs: 15_000 },
-    { model: env.geminiFallbackModel(), timeoutMs: 20_000 },
+    { model: env.geminiModel(), timeoutMs: 14_000 },
     { model: env.geminiFallbackModel(), timeoutMs: 20_000 },
   ];
   let lastError: unknown;

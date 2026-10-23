@@ -12,6 +12,9 @@ import { formatInZone, TIMEZONES } from "@/lib/time";
 import { changePassword } from "../../(auth)/actions";
 import { createLinkCode, removeGeminiKey, saveBrand, saveGeminiKey, unlinkChannel } from "../actions";
 
+// AI writing and LinkedIn uploads can take 20-40s; server actions on this page share this limit.
+export const maxDuration = 60;
+
 export const metadata = { title: "Settings" };
 
 export default async function SettingsPage({ searchParams }: { searchParams: Promise<Record<string, string>> }) {
