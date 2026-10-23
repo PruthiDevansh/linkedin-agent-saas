@@ -1,0 +1,46 @@
+// Built-in inspiration: proven hook formulas and post structures.
+// These are patterns (fill in the blanks), not copies of anyone's posts.
+
+export const HOOKS: { category: string; text: string }[] = [
+  { category: "Story", text: "I made a mistake that cost me [X]. Here's what I learned:" },
+  { category: "Story", text: "[Time] ago I was [struggle]. Today I [result]." },
+  { category: "Story", text: "My manager said one sentence that changed how I [work/think]." },
+  { category: "Story", text: "I almost quit [thing]. I'm glad I didn't." },
+  { category: "Story", text: "Nobody told me this when I started as a [role]:" },
+  { category: "Contrarian", text: "Unpopular opinion: [common belief] is overrated." },
+  { category: "Contrarian", text: "Stop [common advice]. Do this instead:" },
+  { category: "Contrarian", text: "[Popular tool/trend] won't save you. [Fundamental] will." },
+  { category: "Contrarian", text: "Everyone is talking about [trend]. Almost no one is talking about [overlooked thing]." },
+  { category: "Contrarian", text: "The best [role]s I know don't [expected habit]." },
+  { category: "List", text: "[N] lessons from [N] years as a [role]:" },
+  { category: "List", text: "[N] tools I use every day as a [role] (all free):" },
+  { category: "List", text: "[N] signs you're ready for [next level]:" },
+  { category: "List", text: "If I had to learn [skill] again from zero, I'd do these [N] things:" },
+  { category: "List", text: "[N] questions to ask before you [decision]:" },
+  { category: "News", text: "[Company] just [did thing]. Here's what it means for [audience]:" },
+  { category: "News", text: "Everyone missed the most important part of [announcement]." },
+  { category: "News", text: "[New model/tool] is out. I tested it for [time]. My honest verdict:" },
+  { category: "News", text: "[Startup] raised [amount]. The real lesson isn't the money." },
+  { category: "Question", text: "Would you rather [option A] or [option B]? I changed my answer this year." },
+  { category: "Question", text: "What's one [skill/habit] you wish you'd learned earlier?" },
+  { category: "Question", text: "Is [practice] still worth it in [year]? Let's discuss." },
+  { category: "How-to", text: "How I [result] in [time] without [common cost]:" },
+  { category: "How-to", text: "The simplest way to [goal] (that nobody uses):" },
+  { category: "How-to", text: "Here's my exact process for [task], step by step:" },
+  { category: "How-to", text: "You can [result] in [short time]. Here's how:" },
+  { category: "Build in public", text: "I built [thing] in [time] with [tools]. Here's how it works:" },
+  { category: "Build in public", text: "Week [N] of building [project]: what worked and what didn't." },
+  { category: "Build in public", text: "[N] users in [time] with $0 in ads. What actually worked:" },
+  { category: "Build in public", text: "I shipped [feature] today. It almost didn't happen." },
+];
+
+export const TEMPLATES: { name: string; when: string; structure: string }[] = [
+  { name: "Lesson from experience", when: "Share something you learned the hard way", structure: "Hook: the mistake or moment\nContext: 2 short lines\nWhat happened\nThe lesson (one sentence)\nHow you apply it now\nQuestion to the reader" },
+  { name: "Hot take on news", when: "React to trending news in your field", structure: "Hook: the news in one line\nWhat everyone is saying\nWhat you think they're missing\nWhy it matters for your audience\nYour prediction\nQuestion" },
+  { name: "Numbered list", when: "Teach several quick tips", structure: "Hook: '[N] things…'\n1–5 short items, one line each\nThe one that matters most and why\nAsk which one they'd add" },
+  { name: "Before → after", when: "Show a transformation", structure: "Hook: before vs after\nBefore: the pain\nThe change you made\nAfter: the result (real numbers only)\nOne takeaway" },
+  { name: "Build in public", when: "Share progress on a project", structure: "Hook: what you built or shipped\nWhy you built it\nHow it works (3 steps)\nWhat surprised you\nWhat's next + ask for feedback" },
+  { name: "Myth vs reality", when: "Correct a common belief", structure: "Hook: 'Myth: …'\nWhy people believe it\nReality, with an example\nWhat to do instead\nQuestion" },
+  { name: "Tool review", when: "You tried a new tool or AI model", structure: "Hook: honest verdict up front\nWhat it is (1 line)\nWhat's great (2 points)\nWhat's not (1–2 points)\nWho should use it\nQuestion" },
+  { name: "Career advice", when: "Help people earlier in their career", structure: "Hook: the advice in 1 line\nWhy it's true (your story)\nHow to do it this week (3 steps)\nEncouragement\nQuestion" },
+];
