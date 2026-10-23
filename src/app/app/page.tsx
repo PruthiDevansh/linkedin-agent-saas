@@ -19,15 +19,16 @@ export default async function Dashboard({ searchParams }: { searchParams: Promis
   const { workspace } = await currentWorkspace(profile, (await cookies()).get("ws")?.value);
   const tz = workspace.timezone;
 
-  const [{ data: recent }, { count: accounts }, posts] = await Promise.all([
+  // All independent queries at once: one round trip of waiting instead of five.
+  const [{ data: recent }, { count: accounts }, posts, { data: scheduledRows }, { count: pendingCount }] = await Promise.all([
     db().from("drafts").select("*").eq("workspace_id", workspace.id).order("created_at", { ascending: false }).limit(6),
     db().from("linkedin_accounts").select("id", { count: "exact", head: true }).eq("workspace_id", workspace.id),
     postsWithMetrics(workspace.id, 90),
+    db().from("drafts").select("*").eq("workspace_id", workspace.id).eq("status", "scheduled").order("scheduled_at").limit(3),
+    db().from("drafts").select("id", { count: "exact", head: true }).eq("workspace_id", workspace.id).eq("status", "pending"),
   ]);
   const drafts = (recent ?? []) as Draft[];
-  const { data: scheduledRows } = await db().from("drafts").select("*").eq("workspace_id", workspace.id).eq("status", "scheduled").order("scheduled_at").limit(3);
   const scheduled = (scheduledRows ?? []) as Draft[];
-  const { count: pendingCount } = await db().from("drafts").select("id", { count: "exact", head: true }).eq("workspace_id", workspace.id).eq("status", "pending");
 
   const monthAgo = Date.now() - 30 * 86_400_000;
   const postsThisMonth = posts.filter((p) => new Date(p.posted_at!).getTime() > monthAgo).length;

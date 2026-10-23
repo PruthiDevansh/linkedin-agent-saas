@@ -4,7 +4,9 @@ import Link from "next/link";
 import { Badge, Card, CardHeader, cx, PageHeader } from "@/components/ui";
 import { HOOKS, TEMPLATES } from "@/lib/engine/library";
 import { findCandidates } from "@/lib/engine/sources";
-import { CATEGORIES, isCategoryId } from "@/lib/engine/topics";
+import { CATEGORIES, isCategoryId, type CategoryId } from "@/lib/engine/topics";
+import { unstable_cache } from "next/cache";
+import { Suspense } from "react";
 import { currentWorkspace, requireActiveUser } from "@/lib/session";
 import { db } from "@/lib/supabase";
 
@@ -39,7 +41,11 @@ export default async function InspirationPage({ searchParams }: { searchParams: 
         ))}
       </div>
 
-      {tab === "trending" && <Trending topics={workspace.topics} />}
+      {tab === "trending" && (
+        <Suspense fallback={<div className="space-y-4">{[0, 1].map((i) => <div key={i} className="h-64 animate-pulse rounded-2xl border border-border bg-surface" />)}</div>}>
+          <Trending topics={workspace.topics} />
+        </Suspense>
+      )}
 
       {tab === "hooks" && (
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
@@ -74,9 +80,14 @@ export default async function InspirationPage({ searchParams }: { searchParams: 
   );
 }
 
+// News feeds are slow to download; share results across all users for 30 minutes.
+const trendingFor = unstable_cache(async (topic: CategoryId) => (await findCandidates(topic, new Set())).slice(0, 6), ["trending"], {
+  revalidate: 1800,
+});
+
 async function Trending({ topics }: { topics: string[] }) {
   const valid = topics.filter(isCategoryId).slice(0, 3);
-  const lists = await Promise.all(valid.map(async (t) => ({ topic: t, items: (await findCandidates(t, new Set())).slice(0, 6) })));
+  const lists = await Promise.all(valid.map(async (t) => ({ topic: t, items: await trendingFor(t) })));
   return (
     <div className="space-y-6">
       {lists.map(({ topic, items }) => (

@@ -20,11 +20,13 @@ export async function proxy(request: NextRequest) {
       },
     },
   });
-  const { data } = await supabase.auth.getUser();
+  // getClaims verifies the login token locally (no network call when the
+  // project uses asymmetric signing keys) and refreshes it when it expires.
+  const { data } = await supabase.auth.getClaims();
 
   const path = request.nextUrl.pathname;
   const isPrivate = path.startsWith("/app") || path.startsWith("/admin") || path.startsWith("/onboarding");
-  if (isPrivate && !data.user) {
+  if (isPrivate && !data?.claims?.sub) {
     const login = new URL("/login", request.url);
     login.searchParams.set("next", path);
     return NextResponse.redirect(login);

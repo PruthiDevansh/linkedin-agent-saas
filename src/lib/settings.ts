@@ -1,11 +1,13 @@
+import { cache } from "react";
 import { db } from "./supabase";
 import type { AppSettings, Profile } from "./types";
 
-export async function getSettings(): Promise<AppSettings> {
+// Cached per request: the layout and page both read settings.
+export const getSettings = cache(async (): Promise<AppSettings> => {
   const { data, error } = await db().from("app_settings").select("*").eq("id", 1).single();
   if (error) throw new Error(`Could not load settings: ${error.message}`);
   return data as AppSettings;
-}
+});
 
 // Pro only counts while paid_until is in the future (or for lifetime / admin-granted).
 export function effectivePlan(profile: Profile): "free" | "pro" {

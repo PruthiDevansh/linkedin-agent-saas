@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import { after } from "next/server";
 import { cache } from "react";
 import { env } from "./env";
 import { getSettings } from "./settings";
@@ -34,19 +35,23 @@ async function createProfile(id: string, email: string, fullName: string): Promi
 // The signed-in user's profile, or null. Cached per request.
 export const currentProfile = cache(async (): Promise<Profile | null> => {
   const supabase = await authClient();
-  const { data } = await supabase.auth.getUser();
-  const user = data.user;
-  if (!user?.email) return null;
+  // Verified locally from the signed login token: no extra network round trip.
+  const { data } = await supabase.auth.getClaims();
+  const claims = data?.claims;
+  const id = claims?.sub;
+  const email = typeof claims?.email === "string" ? claims.email : "";
+  if (!id || !email) return null;
 
-  const { data: existing } = await db().from("profiles").select("*").eq("id", user.id).maybeSingle();
+  const { data: existing } = await db().from("profiles").select("*").eq("id", id).maybeSingle();
   if (existing) {
-    // Track activity at most every 10 minutes.
+    // Track activity at most every 10 minutes, after the response is sent.
     if (Date.now() - new Date(existing.last_active_at).getTime() > 10 * 60_000) {
-      await db().from("profiles").update({ last_active_at: new Date().toISOString() }).eq("id", user.id);
+      after(() => db().from("profiles").update({ last_active_at: new Date().toISOString() }).eq("id", id));
     }
     return existing as Profile;
   }
-  return createProfile(user.id, user.email, (user.user_metadata?.full_name as string) ?? "");
+  const meta = (claims?.user_metadata ?? {}) as { full_name?: string };
+  return createProfile(id, email, meta.full_name ?? "");
 });
 
 export async function requireUser(): Promise<Profile> {
@@ -72,22 +77,21 @@ export async function requireAdmin(): Promise<Profile> {
 export type WorkspaceContext = { workspace: Workspace; role: MemberRole; workspaces: { id: string; name: string; role: MemberRole }[] };
 
 // The workspace the user is working in, plus the list they can switch to.
-export async function currentWorkspace(profile: Profile, requested?: string): Promise<WorkspaceContext> {
-  const { data: memberships } = await db()
-    .from("workspace_members")
-    .select("role, workspaces(id, name)")
-    .eq("user_id", profile.id);
+// One query, and cached so the layout and the page share it per request.
+export const currentWorkspace = cache(async (profile: Profile, requested?: string): Promise<WorkspaceContext> => {
+  const { data: memberships } = await db().from("workspace_members").select("role, workspaces(*)").eq("user_id", profile.id);
 
-  const list = (memberships ?? []).map((m) => {
-    const w = m.workspaces as unknown as { id: string; name: string };
-    return { id: w.id, name: w.name, role: m.role as MemberRole };
-  });
-  const chosen = list.find((w) => w.id === requested) ?? list.find((w) => w.id === profile.default_workspace_id) ?? list[0];
+  const rows = (memberships ?? []).map((m) => ({ workspace: m.workspaces as unknown as Workspace, role: m.role as MemberRole }));
+  const chosen =
+    rows.find((r) => r.workspace.id === requested) ?? rows.find((r) => r.workspace.id === profile.default_workspace_id) ?? rows[0];
   if (!chosen) throw new Error("You are not a member of any workspace.");
 
-  const { data: workspace } = await db().from("workspaces").select("*").eq("id", chosen.id).single();
-  return { workspace: workspace as Workspace, role: chosen.role, workspaces: list };
-}
+  return {
+    workspace: chosen.workspace,
+    role: chosen.role,
+    workspaces: rows.map((r) => ({ id: r.workspace.id, name: r.workspace.name, role: r.role })),
+  };
+});
 
 export function canEdit(role: MemberRole) {
   return role === "owner" || role === "editor";
