@@ -3,7 +3,7 @@ import { cookies } from "next/headers";
 import Link from "next/link";
 import { SubmitButton } from "@/components/submit";
 import { Card, cx, Flash, Input, Label, PageHeader, Select, Textarea } from "@/components/ui";
-import { CATEGORIES, CATEGORY_IDS, categoryForToday } from "@/lib/engine/topics";
+import { CATEGORY_IDS, categoryForToday, cleanTopics, topicLabel } from "@/lib/engine/topics";
 import { currentWorkspace, requireActiveUser } from "@/lib/session";
 import { generateCarousel, generateIdea, generateNews } from "../actions";
 
@@ -34,6 +34,7 @@ export default async function CreatePage({ searchParams }: { searchParams: Promi
   const tab = TABS.find((t) => t.id === params.tab)?.id ?? "news";
   const linked = !!(profile.telegram_chat_id || profile.whatsapp_number);
   const today = categoryForToday(workspace.topics, workspace.timezone);
+  const mine = cleanTopics(workspace.topics);
 
   return (
     <>
@@ -60,14 +61,16 @@ export default async function CreatePage({ searchParams }: { searchParams: Promi
             <div>
               <Label htmlFor="category">Topic</Label>
               <Select id="category" name="category" defaultValue={today}>
-                {CATEGORY_IDS.map((id) => (
-                  <option key={id} value={id}>
-                    {CATEGORIES[id].label}
-                    {workspace.topics.includes(id) ? " ★" : ""}
-                  </option>
-                ))}
+                <optgroup label="Your topics">
+                  {mine.map((t) => <option key={t} value={t}>{topicLabel(t)}</option>)}
+                </optgroup>
+                <optgroup label="More topics">
+                  {CATEGORY_IDS.filter((id) => !mine.includes(id)).map((id) => <option key={id} value={id}>{topicLabel(id)}</option>)}
+                </optgroup>
               </Select>
-              <p className="mt-1.5 text-xs text-muted">★ = your topics. Sources: tech blogs, TechCrunch, Inc42 and more, plus Hacker News upvotes and Google Trends India.</p>
+              <p className="mt-1.5 text-xs text-muted">
+                Add topics for your own field (law, medicine, teaching…) in <Link href="/app/settings" className="text-brand underline">Settings</Link>. Sources: Google News, TechCrunch, Inc42 and more, plus Hacker News upvotes and Google Trends India.
+              </p>
             </div>
             <ChatToggle linked={linked} />
             <SubmitButton pending="Reading the news & writing… (≈20s)">Find news & write post</SubmitButton>

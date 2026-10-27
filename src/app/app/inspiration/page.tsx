@@ -4,7 +4,7 @@ import Link from "next/link";
 import { Badge, Card, CardHeader, cx, PageHeader } from "@/components/ui";
 import { HOOKS, TEMPLATES } from "@/lib/engine/library";
 import { findCandidates } from "@/lib/engine/sources";
-import { CATEGORIES, isCategoryId, type CategoryId } from "@/lib/engine/topics";
+import { cleanTopics, isCategoryId, topicLabel } from "@/lib/engine/topics";
 import { unstable_cache } from "next/cache";
 import { Suspense } from "react";
 import { currentWorkspace, requireActiveUser } from "@/lib/session";
@@ -81,18 +81,18 @@ export default async function InspirationPage({ searchParams }: { searchParams: 
 }
 
 // News feeds are slow to download; share results across all users for 30 minutes.
-const trendingFor = unstable_cache(async (topic: CategoryId) => (await findCandidates(topic, new Set())).slice(0, 6), ["trending"], {
+const trendingFor = unstable_cache(async (topic: string) => (await findCandidates(topic, new Set())).slice(0, 6), ["trending"], {
   revalidate: 1800,
 });
 
 async function Trending({ topics }: { topics: string[] }) {
-  const valid = topics.filter(isCategoryId).slice(0, 3);
+  const valid = cleanTopics(topics).slice(0, 3);
   const lists = await Promise.all(valid.map(async (t) => ({ topic: t, items: await trendingFor(t) })));
   return (
     <div className="space-y-6">
       {lists.map(({ topic, items }) => (
         <Card key={topic}>
-          <CardHeader title={CATEGORIES[topic].label} description="Fresh from the last few days, most upvoted first" />
+          <CardHeader title={topicLabel(topic)} description={isCategoryId(topic) ? "Fresh from the last few days, most upvoted first" : "Fresh from Google News in the last few days"} />
           <ul className="divide-y divide-border">
             {items.map((c) => (
               <li key={c.url} className="flex flex-wrap items-center gap-3 px-5 py-3">

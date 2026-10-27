@@ -6,7 +6,7 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { notifyDraft } from "@/lib/channels/chat";
 import { encrypt, shortCode } from "@/lib/crypto";
-import { AiKeyMissingError, testAiKey } from "@/lib/engine/ai";
+import { AiKeyMissingError, aiKeyFor, suggestTopics, testAiKey } from "@/lib/engine/ai";
 import { bestTimes, nextSlot, postsWithMetrics } from "@/lib/engine/analytics";
 import {
   createCarouselDraft,
@@ -20,7 +20,7 @@ import {
   updateDraft,
 } from "@/lib/engine/drafts";
 import { savePhoto } from "@/lib/engine/media";
-import { isCategoryId } from "@/lib/engine/topics";
+import { cleanTopic, cleanTopics } from "@/lib/engine/topics";
 import { canEdit, currentWorkspace, requireActiveUser } from "@/lib/session";
 import { db } from "@/lib/supabase";
 import { zonedWallTimeToUtc } from "@/lib/time";
@@ -79,7 +79,7 @@ export async function createWorkspace(form: FormData) {
 
 export async function saveBrand(form: FormData) {
   const c = await editableCtx();
-  const topics = form.getAll("topics").map(String).filter(isCategoryId);
+  const topics = cleanTopics(form.getAll("topics").map(String));
   const theme = String(form.get("image_theme"));
   const { error } = await db()
     .from("workspaces")
@@ -98,6 +98,20 @@ export async function saveBrand(form: FormData) {
   if (error) go("/app/settings", { error: error.message });
   revalidatePath("/app", "layout");
   go("/app/settings", { ok: "Saved." });
+}
+
+// Called from the topic picker; returns instead of redirecting so unsaved form edits stay.
+export async function suggestTopicsForProfile(about: string, audience: string): Promise<{ topics?: string[]; error?: string }> {
+  const c = await editableCtx();
+  about = about.trim().slice(0, 600) || c.workspace.about;
+  audience = audience.trim().slice(0, 300) || c.workspace.audience;
+  if (!about && !audience) return { error: "Fill in About (your profession and what you do) first." };
+  try {
+    const topics = await suggestTopics(await aiKeyFor(c.profile), about, audience);
+    return topics.length ? { topics } : { error: "The AI had no ideas this time. Please try again." };
+  } catch (err) {
+    return { error: errorMessage(err) };
+  }
 }
 
 // ------------------------------------------------------------------ AI key
@@ -138,7 +152,7 @@ export async function generateNews(form: FormData) {
   const cat = String(form.get("category") ?? "");
   let draft: Draft | null = null;
   try {
-    draft = await createNewsDraft(c.profile, c.workspace.id, isCategoryId(cat) ? cat : undefined);
+    draft = await createNewsDraft(c.profile, c.workspace.id, cleanTopic(cat) ?? undefined);
   } catch (err) {
     go("/app/create", { error: errorMessage(err) });
   }
