@@ -1,4 +1,5 @@
 import { cache } from "react";
+import { env } from "./env";
 import { db } from "./supabase";
 import type { AppSettings, Profile } from "./types";
 
@@ -15,6 +16,18 @@ export function effectivePlan(profile: Profile): "free" | "pro" {
   if (profile.plan !== "pro") return "free";
   if (!profile.paid_until) return "pro"; // lifetime or granted by admin
   return new Date(profile.paid_until) > new Date() ? "pro" : "free";
+}
+
+// Posts are written with the platform Gemini key: Pro, switched on by the admin
+// for this user, or switched on for every free user.
+export function usesPlatformAi(settings: AppSettings, profile: Profile): boolean {
+  if (!env.geminiKey()) return false;
+  return effectivePlan(profile) === "pro" || !!profile.platform_ai || !!settings.free_platform_ai;
+}
+
+// True when the user can't generate anything until they add their own key.
+export function needsOwnKey(settings: AppSettings, profile: Profile): boolean {
+  return !usesPlatformAi(settings, profile) && !profile.gemini_key_enc;
 }
 
 export function dailyDraftLimit(settings: AppSettings, profile: Profile): number {

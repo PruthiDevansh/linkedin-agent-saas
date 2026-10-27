@@ -1,20 +1,55 @@
+import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { after } from "next/server";
 import { cache } from "react";
 import { env } from "./env";
 import { getSettings } from "./settings";
 import { authClient, db } from "./supabase";
-import type { MemberRole, Profile, Workspace } from "./types";
+import type { AdminInvite, MemberRole, Profile, Workspace } from "./types";
+
+// Set by an admin to use the app as another user (see "View as" in the admin panel).
+export const IMPERSONATE_COOKIE = "imp";
+
+// The newest unused admin invite for this email, if any.
+export async function pendingInvite(email: string): Promise<AdminInvite | null> {
+  const { data } = await db()
+    .from("admin_invites")
+    .select("*")
+    .ilike("email", email.replace(/[%_\\]/g, "\\$&"))
+    .is("accepted_at", null)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  return (data as AdminInvite | null) ?? null;
+}
+
+// What an invite grants, as profile columns.
+export function inviteGrant(invite: AdminInvite) {
+  return {
+    status: "active" as const,
+    plan: invite.plan,
+    paid_until: invite.plan === "pro" && invite.pro_days ? new Date(Date.now() + invite.pro_days * 86_400_000).toISOString() : null,
+    platform_ai: invite.platform_ai,
+  };
+}
 
 // Creates the profile + first workspace the first time a user signs in.
 async function createProfile(id: string, email: string, fullName: string): Promise<Profile> {
-  const settings = await getSettings();
+  const [settings, invite] = await Promise.all([getSettings(), pendingInvite(email)]);
   const isAdmin = env.adminEmails().includes(email.toLowerCase());
-  const status = isAdmin || settings.registration_mode !== "paid" ? "active" : "pending_payment";
+  const status = isAdmin || invite || settings.registration_mode !== "paid" ? "active" : "pending_payment";
 
   const { data: profile, error } = await db()
     .from("profiles")
-    .insert({ id, email, full_name: fullName, role: isAdmin ? "admin" : "user", plan: isAdmin ? "pro" : "free", status })
+    .insert({
+      id,
+      email,
+      full_name: fullName,
+      role: isAdmin ? "admin" : "user",
+      plan: isAdmin ? "pro" : "free",
+      status,
+      ...(invite && !isAdmin ? inviteGrant(invite) : {}),
+    })
     .select()
     .single();
   if (error) throw new Error(`Could not create profile: ${error.message}`);
@@ -28,12 +63,13 @@ async function createProfile(id: string, email: string, fullName: string): Promi
 
   await db().from("workspace_members").insert({ workspace_id: ws.id, user_id: id, role: "owner" });
   await db().from("profiles").update({ default_workspace_id: ws.id }).eq("id", id);
-  await db().from("usage_events").insert({ user_id: id, workspace_id: ws.id, type: "registered" });
+  await db().from("usage_events").insert({ user_id: id, workspace_id: ws.id, type: "registered", meta: invite ? { invited: invite.plan } : {} });
+  if (invite) await db().from("admin_invites").update({ accepted_at: new Date().toISOString(), accepted_by: id }).eq("id", invite.id);
   return { ...(profile as Profile), default_workspace_id: ws.id };
 }
 
-// The signed-in user's profile, or null. Cached per request.
-export const currentProfile = cache(async (): Promise<Profile | null> => {
+// The person actually logged in (never the impersonated user). Cached per request.
+const sessionProfile = cache(async (): Promise<Profile | null> => {
   const supabase = await authClient();
   // Verified locally from the signed login token: no extra network round trip.
   const { data } = await supabase.auth.getClaims();
@@ -54,6 +90,20 @@ export const currentProfile = cache(async (): Promise<Profile | null> => {
   return createProfile(id, email, meta.full_name ?? "");
 });
 
+// When an admin is viewing the app as someone else: both profiles. Only honoured
+// for a logged-in admin, so the cookie is useless to anyone else.
+export const impersonation = cache(async (): Promise<{ admin: Profile; target: Profile } | null> => {
+  const targetId = (await cookies()).get(IMPERSONATE_COOKIE)?.value;
+  if (!targetId) return null;
+  const admin = await sessionProfile();
+  if (!admin || admin.role !== "admin" || admin.id === targetId) return null;
+  const { data } = await db().from("profiles").select("*").eq("id", targetId).maybeSingle();
+  return data ? { admin, target: data as Profile } : null;
+});
+
+// The profile the app acts as: the signed-in user, or the user an admin is viewing as.
+export const currentProfile = cache(async (): Promise<Profile | null> => (await impersonation())?.target ?? sessionProfile());
+
 export async function requireUser(): Promise<Profile> {
   const profile = await currentProfile();
   if (!profile) redirect("/login");
@@ -68,9 +118,11 @@ export async function requireActiveUser(): Promise<Profile> {
   return profile;
 }
 
+// Checks the real signed-in account, so the admin panel keeps working while viewing as someone.
 export async function requireAdmin(): Promise<Profile> {
-  const profile = await requireUser();
-  if (profile.role !== "admin") redirect("/app");
+  const profile = await sessionProfile();
+  if (!profile) redirect("/login");
+  if (profile.role !== "admin" || profile.status === "suspended") redirect("/app");
   return profile;
 }
 

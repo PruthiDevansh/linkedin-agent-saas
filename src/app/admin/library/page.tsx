@@ -1,6 +1,6 @@
 import { Trash2 } from "lucide-react";
 import { SubmitButton } from "@/components/submit";
-import { Badge, Card, CardHeader, Flash, Input, Label, PageHeader, Select, Textarea } from "@/components/ui";
+import { Badge, Card, CardHeader, Flash, Input, Label, PageHeader, Select, Textarea, PlainButton } from "@/components/ui";
 import { requireAdmin } from "@/lib/session";
 import { db } from "@/lib/supabase";
 import { addLibraryItem, deleteLibraryItem } from "../actions";
@@ -45,7 +45,7 @@ export default async function AdminLibrary({ searchParams }: { searchParams: Pro
                 </div>
                 <form action={deleteLibraryItem}>
                   <input type="hidden" name="id" value={item.id} />
-                  <button className="rounded-md p-2 text-muted hover:text-danger" aria-label="Delete"><Trash2 className="size-4" /></button>
+                  <PlainButton className="rounded-md p-2 text-muted hover:text-danger" aria-label="Delete"><Trash2 className="size-4" /></PlainButton>
                 </form>
               </li>
             ))}

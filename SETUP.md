@@ -11,7 +11,7 @@ Time: about 1 hour, one time. Everything except payments is free to start.
 ## 1. Supabase (database + login) · 10 min
 
 1. Go to https://supabase.com → **New project** (free). Pick the **Mumbai** region if you're in India. Save the database password.
-2. **SQL Editor** → **New query** → paste everything from `supabase/migrations/0001_init.sql` → **Run**.
+2. **SQL Editor** → **New query** → paste everything from `supabase/migrations/0001_init.sql` → **Run**. Then do the same with `supabase/migrations/0002_admin.sql` (admin invites, built-in AI switch, email-confirmation setting).
 3. **Project Settings → API**: copy
    - Project URL → `NEXT_PUBLIC_SUPABASE_URL`
    - `anon` public key → `NEXT_PUBLIC_SUPABASE_ANON_KEY`

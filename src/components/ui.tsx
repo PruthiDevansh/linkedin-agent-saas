@@ -1,22 +1,11 @@
 import Link from "next/link";
 import type { ComponentProps, ReactNode } from "react";
+import { BASE, VARIANTS, type Variant } from "./button-styles";
+
+export { Button, PlainButton } from "./button";
 
 export function cx(...parts: (string | false | null | undefined)[]) {
   return parts.filter(Boolean).join(" ");
-}
-
-type Variant = "primary" | "secondary" | "ghost" | "danger";
-const VARIANTS: Record<Variant, string> = {
-  primary: "bg-brand text-white hover:bg-brand-strong shadow-sm",
-  secondary: "bg-surface text-text border border-border hover:bg-surface-2",
-  ghost: "text-muted hover:text-text hover:bg-surface-2",
-  danger: "bg-danger text-white hover:opacity-90",
-};
-const BASE =
-  "inline-flex items-center justify-center gap-2 rounded-lg px-3.5 py-2 text-sm font-medium transition-colors disabled:opacity-50 disabled:pointer-events-none whitespace-nowrap";
-
-export function Button({ variant = "primary", className, ...props }: ComponentProps<"button"> & { variant?: Variant }) {
-  return <button className={cx(BASE, VARIANTS[variant], className)} {...props} />;
 }
 
 export function ButtonLink({ variant = "primary", className, ...props }: ComponentProps<typeof Link> & { variant?: Variant }) {
@@ -24,14 +13,14 @@ export function ButtonLink({ variant = "primary", className, ...props }: Compone
 }
 
 export function Card({ className, ...props }: ComponentProps<"div">) {
-  return <div className={cx("rounded-2xl border border-border bg-surface", className)} {...props} />;
+  return <div className={cx("rounded-2xl border border-border bg-surface shadow-card", className)} {...props} />;
 }
 
 export function CardHeader({ title, description, action }: { title: ReactNode; description?: ReactNode; action?: ReactNode }) {
   return (
     <div className="flex flex-wrap items-start justify-between gap-3 border-b border-border px-5 py-4">
       <div className="min-w-0">
-        <h2 className="text-base font-semibold">{title}</h2>
+        <h2 className="text-[15px] font-semibold tracking-tight">{title}</h2>
         {description && <p className="mt-0.5 text-sm text-muted">{description}</p>}
       </div>
       {action}
@@ -61,7 +50,8 @@ export function Label({ children, hint, htmlFor }: { children: ReactNode; hint?:
   );
 }
 
-const FIELD = "w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm text-text placeholder:text-muted/70 focus:border-brand focus:outline-none focus:ring-4 focus:ring-[var(--ring)]";
+const FIELD =
+  "w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm text-text shadow-xs transition-colors placeholder:text-muted/70 hover:border-border-strong focus:border-brand focus:outline-none focus:ring-4 focus:ring-[var(--ring)] disabled:opacity-60";
 
 export function Input(props: ComponentProps<"input">) {
   return <input {...props} className={cx(FIELD, props.className)} />;
@@ -80,9 +70,9 @@ export function Stat({ label, value, hint, icon }: { label: string; value: React
     <Card className="p-5">
       <div className="flex items-center justify-between text-sm text-muted">
         <span>{label}</span>
-        {icon}
+        {icon && <span className="grid size-8 place-items-center rounded-lg bg-brand-soft text-brand">{icon}</span>}
       </div>
-      <div className="mt-2 text-2xl font-semibold tabular-nums">{value}</div>
+      <div className="mt-2 text-2xl font-semibold tracking-tight tabular-nums">{value}</div>
       {hint && <div className="mt-1 text-xs text-muted">{hint}</div>}
     </Card>
   );
@@ -92,7 +82,7 @@ export function PageHeader({ title, description, action }: { title: string; desc
   return (
     <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
       <div className="min-w-0">
-        <h1 className="text-2xl font-semibold tracking-tight">{title}</h1>
+        <h1 className="text-2xl font-semibold tracking-tight sm:text-[28px]">{title}</h1>
         {description && <p className="mt-1 text-sm text-muted">{description}</p>}
       </div>
       {action && <div className="flex flex-wrap gap-2">{action}</div>}
@@ -103,7 +93,7 @@ export function PageHeader({ title, description, action }: { title: string; desc
 export function Empty({ icon, title, children }: { icon?: ReactNode; title: string; children?: ReactNode }) {
   return (
     <div className="flex flex-col items-center justify-center px-6 py-14 text-center">
-      {icon && <div className="mb-3 text-muted">{icon}</div>}
+      {icon && <div className="mb-3 grid size-12 place-items-center rounded-full bg-surface-2 text-muted">{icon}</div>}
       <p className="font-medium">{title}</p>
       {children && <div className="mt-1 max-w-sm text-sm text-muted">{children}</div>}
     </div>
@@ -114,8 +104,8 @@ export function Notice({ tone = "brand", children }: { tone?: Tone; children: Re
   return <div className={cx("rounded-xl px-4 py-3 text-sm", TONES[tone])}>{children}</div>;
 }
 
+// Errors stay inline next to the form; success messages appear as a toast (see <Toaster>).
 export function Flash({ searchParams }: { searchParams: { ok?: string; error?: string } }) {
-  if (searchParams.error) return <div className="mb-4"><Notice tone="danger">{searchParams.error}</Notice></div>;
-  if (searchParams.ok) return <div className="mb-4"><Notice tone="success">{searchParams.ok}</Notice></div>;
+  if (searchParams.error) return <div className="mb-4" role="alert"><Notice tone="danger">{searchParams.error}</Notice></div>;
   return null;
 }
