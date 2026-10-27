@@ -14,6 +14,8 @@ export type AppSettings = {
   free_max_accounts: number;
   pro_max_accounts: number;
   announcement: string | null;
+  require_email_confirm: boolean;
+  free_platform_ai: boolean;
 };
 
 export type Profile = {
@@ -25,6 +27,7 @@ export type Profile = {
   status: "active" | "pending_payment" | "suspended";
   paid_until: string | null;
   gemini_key_enc: string | null;
+  platform_ai: boolean;
   telegram_chat_id: number | null;
   whatsapp_number: string | null;
   link_code: string | null;
@@ -120,4 +123,18 @@ export type PostMetric = {
   reposts: number;
   source: "manual" | "api";
   recorded_at: string;
+};
+
+export type AdminInvite = {
+  id: string;
+  email: string;
+  token: string;
+  plan: "free" | "pro";
+  pro_days: number | null;
+  platform_ai: boolean;
+  note: string | null;
+  created_by: string | null;
+  created_at: string;
+  accepted_at: string | null;
+  accepted_by: string | null;
 };

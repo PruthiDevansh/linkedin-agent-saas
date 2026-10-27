@@ -22,13 +22,13 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
             <Label htmlFor="password">Password</Label>
             <Input id="password" name="password" type="password" autoComplete="current-password" required />
           </div>
-          <Button type="submit" className="w-full">Log in</Button>
+          <Button type="submit" className="w-full" pending="Logging you in…">Log in</Button>
         </form>
         <details className="mt-4 text-sm">
           <summary className="cursor-pointer text-muted hover:text-text">Forgot password?</summary>
           <form action={resetPassword} className="mt-3 flex gap-2">
             <Input name="email" type="email" placeholder="you@example.com" required />
-            <Button type="submit" variant="secondary">Send link</Button>
+            <Button type="submit" variant="secondary" pending="Sending…">Send link</Button>
           </form>
         </details>
         <p className="mt-8 text-sm text-muted">

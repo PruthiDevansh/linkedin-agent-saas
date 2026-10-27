@@ -1,7 +1,7 @@
 import { Plus, Trash2, UserPlus } from "lucide-react";
 import { cookies } from "next/headers";
 import { SubmitButton } from "@/components/submit";
-import { Badge, ButtonLink, Card, CardHeader, Flash, Input, Notice, PageHeader, Select } from "@/components/ui";
+import { Badge, ButtonLink, Card, CardHeader, Flash, Input, Notice, PageHeader, Select, PlainButton } from "@/components/ui";
 import { env } from "@/lib/env";
 import { currentWorkspace, requireActiveUser } from "@/lib/session";
 import { getSettings, maxAccounts } from "@/lib/settings";
@@ -57,7 +57,7 @@ export default async function AccountsPage({ searchParams }: { searchParams: Pro
                 {role !== "viewer" && (
                   <form action={disconnectLinkedIn}>
                     <input type="hidden" name="accountId" value={a.id} />
-                    <button className="rounded-md p-2 text-muted hover:bg-surface-2 hover:text-danger" aria-label="Remove account"><Trash2 className="size-4" /></button>
+                    <PlainButton className="rounded-md p-2 text-muted hover:bg-surface-2 hover:text-danger" aria-label="Remove account" confirm="Remove this LinkedIn account from the workspace?"><Trash2 className="size-4" /></PlainButton>
                   </form>
                 )}
               </li>
@@ -84,7 +84,7 @@ export default async function AccountsPage({ searchParams }: { searchParams: Pro
                   {isOwner && m.user_id !== profile.id && (
                     <form action={removeMember}>
                       <input type="hidden" name="userId" value={m.user_id} />
-                      <button className="rounded-md p-1.5 text-muted hover:text-danger" aria-label="Remove member"><Trash2 className="size-4" /></button>
+                      <PlainButton className="rounded-md p-1.5 text-muted hover:text-danger" aria-label="Remove member" confirm="Remove this person from the workspace?"><Trash2 className="size-4" /></PlainButton>
                     </form>
                   )}
                 </li>
@@ -114,7 +114,7 @@ export default async function AccountsPage({ searchParams }: { searchParams: Pro
                   {invites.map((i) => (
                     <li key={i.id} className="flex items-center justify-between gap-2 rounded-lg bg-surface-2 px-3 py-2">
                       <span className="truncate">{i.email} · {i.role} · pending</span>
-                      <form action={revokeInvite}><input type="hidden" name="inviteId" value={i.id} /><button className="text-xs text-muted hover:text-danger">Revoke</button></form>
+                      <form action={revokeInvite}><input type="hidden" name="inviteId" value={i.id} /><PlainButton className="text-xs text-muted hover:text-danger">Revoke</PlainButton></form>
                     </li>
                   ))}
                 </ul>

@@ -6,7 +6,7 @@ import { DraftRow } from "@/components/drafts";
 import { ButtonLink, Card, CardHeader, Empty, Flash, PageHeader, Stat } from "@/components/ui";
 import { bestTimes, formatSlot, postsWithMetrics } from "@/lib/engine/analytics";
 import { currentWorkspace, requireActiveUser } from "@/lib/session";
-import { effectivePlan } from "@/lib/settings";
+import { getSettings, needsOwnKey } from "@/lib/settings";
 import { db } from "@/lib/supabase";
 import { formatInZone } from "@/lib/time";
 import type { Draft } from "@/lib/types";
@@ -50,9 +50,9 @@ export default async function Dashboard({ searchParams }: { searchParams: Promis
     .slice(-20)
     .map((p) => ({ label: formatInZone(p.posted_at!, tz, { day: "numeric", month: "short" }), engagement: p.engagement, posts: 1 }));
 
-  const plan = effectivePlan(profile);
+  const settings = await getSettings();
   const checklist = [
-    { done: plan === "pro" || !!profile.gemini_key_enc, label: "Add your Gemini key (or go Pro)", href: "/app/settings#ai" },
+    { done: !needsOwnKey(settings, profile), label: "Add your Gemini key (or go Pro)", href: "/app/settings#ai" },
     { done: (accounts ?? 0) > 0, label: "Connect LinkedIn", href: "/app/accounts" },
     { done: !!(profile.telegram_chat_id || profile.whatsapp_number), label: "Link Telegram or WhatsApp for 1-tap approval", href: "/app/settings#channels" },
     { done: !!workspace.about, label: "Describe yourself so posts sound like you", href: "/app/settings" },

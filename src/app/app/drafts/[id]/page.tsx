@@ -5,7 +5,7 @@ import { notFound } from "next/navigation";
 import { StatusBadge } from "@/components/drafts";
 import { SlidesEditor } from "@/components/slides-editor";
 import { SubmitButton } from "@/components/submit";
-import { Button, Card, CardHeader, cx, Flash, Input, Label, Notice, Select, Textarea } from "@/components/ui";
+import { Button, Card, CardHeader, cx, Flash, Input, Label, Notice, Select, Textarea, PlainButton } from "@/components/ui";
 import { bestTimes, formatSlot, nextSlot, postsWithMetrics } from "@/lib/engine/analytics";
 import { categoryLabel, getDraft } from "@/lib/engine/drafts";
 import { availableKinds, IMAGE_LABEL } from "@/lib/engine/visual";
@@ -130,9 +130,9 @@ export default async function DraftPage({ params, searchParams }: { params: Prom
                       <form key={k} action={setImageKind}>
                         <input type="hidden" name="draftId" value={draft.id} />
                         <input type="hidden" name="kind" value={k} />
-                        <button className={cx("rounded-full border px-3 py-1 text-xs font-medium", draft.image_kind === k ? "border-brand bg-brand-soft text-brand" : "border-border text-muted hover:text-text")}>
+                        <PlainButton className={cx("rounded-full border px-3 py-1 text-xs font-medium", draft.image_kind === k ? "border-brand bg-brand-soft text-brand" : "border-border text-muted hover:text-text")}>
                           {IMAGE_LABEL[k]}
-                        </button>
+                        </PlainButton>
                       </form>
                     ))}
                   </div>
@@ -154,7 +154,7 @@ export default async function DraftPage({ params, searchParams }: { params: Prom
                 {!accounts?.length && <Notice tone="warning">Connect LinkedIn on the <Link href="/app/accounts" className="font-semibold underline">Accounts</Link> page to publish.</Notice>}
                 <form action={publishNow}>
                   <input type="hidden" name="draftId" value={draft.id} />
-                  <SubmitButton className="w-full" pending="Posting to LinkedIn…" disabled={!accounts?.length}><Send className="size-4" /> Post now</SubmitButton>
+                  <SubmitButton className="w-full" pending="Posting to LinkedIn…" confirm="Publish this post on LinkedIn now?" disabled={!accounts?.length}><Send className="size-4" /> Post now</SubmitButton>
                 </form>
 
                 <form action={scheduleBestTime}>
@@ -172,13 +172,13 @@ export default async function DraftPage({ params, searchParams }: { params: Prom
 
                 <div className="flex flex-wrap gap-2 border-t border-border pt-4">
                   {draft.status === "scheduled" && (
-                    <form action={unschedule}><input type="hidden" name="draftId" value={draft.id} /><Button variant="ghost">Unschedule</Button></form>
+                    <form action={unschedule}><input type="hidden" name="draftId" value={draft.id} /><Button variant="ghost" pending="Unscheduling…">Unschedule</Button></form>
                   )}
                   {linked && (
-                    <form action={sendDraftToChat}><input type="hidden" name="draftId" value={draft.id} /><Button variant="ghost"><MessageCircle className="size-4" /> Send to chat</Button></form>
+                    <form action={sendDraftToChat}><input type="hidden" name="draftId" value={draft.id} /><Button variant="ghost" pending="Sending…"><MessageCircle className="size-4" /> Send to chat</Button></form>
                   )}
-                  <form action={skipDraftAction}><input type="hidden" name="draftId" value={draft.id} /><Button variant="ghost"><XCircle className="size-4" /> Skip</Button></form>
-                  <form action={deleteDraft}><input type="hidden" name="draftId" value={draft.id} /><Button variant="ghost" className="text-danger"><Trash2 className="size-4" /> Delete</Button></form>
+                  <form action={skipDraftAction}><input type="hidden" name="draftId" value={draft.id} /><Button variant="ghost" pending="Skipping…"><XCircle className="size-4" /> Skip</Button></form>
+                  <form action={deleteDraft}><input type="hidden" name="draftId" value={draft.id} /><Button variant="ghost" className="text-danger" confirm="Delete this draft? This can't be undone." pending="Deleting…"><Trash2 className="size-4" /> Delete</Button></form>
                 </div>
               </div>
             </Card>

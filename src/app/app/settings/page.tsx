@@ -2,12 +2,12 @@ import { KeyRound, MessageCircle, Send } from "lucide-react";
 import { cookies } from "next/headers";
 import Link from "next/link";
 import { SubmitButton } from "@/components/submit";
-import { Badge, Button, ButtonLink, Card, CardHeader, Flash, Input, Label, Notice, PageHeader, Select, Textarea } from "@/components/ui";
+import { Badge, Button, ButtonLink, Card, CardHeader, Flash, Input, Label, Notice, PageHeader, Select, Textarea, PlainButton } from "@/components/ui";
 import { whatsappEnabled } from "@/lib/channels/whatsapp";
 import { CATEGORIES, CATEGORY_IDS } from "@/lib/engine/topics";
 import { env } from "@/lib/env";
 import { canEdit, currentWorkspace, requireActiveUser } from "@/lib/session";
-import { effectivePlan, getSettings, periodLabel } from "@/lib/settings";
+import { effectivePlan, getSettings, periodLabel, usesPlatformAi } from "@/lib/settings";
 import { formatInZone, TIMEZONES } from "@/lib/time";
 import { changePassword } from "../../(auth)/actions";
 import { createLinkCode, removeGeminiKey, saveBrand, saveGeminiKey, unlinkChannel } from "../actions";
@@ -24,6 +24,7 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
   const settings = await getSettings();
   const plan = effectivePlan(profile);
   const editable = canEdit(role);
+  const platformAi = usesPlatformAi(settings, profile);
   const bot = env.telegramBotUsername();
 
   return (
@@ -96,17 +97,17 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
 
         <div className="space-y-6">
           <Card id="ai">
-            <CardHeader title="AI key" description={plan === "pro" ? "Pro uses our premium AI. No key needed." : "Free plan: posts are written with your own free Gemini key."} />
+            <CardHeader title="AI key" description={platformAi ? "Your account uses our premium AI. No key needed." : "Free plan: posts are written with your own free Gemini key."} />
             <div className="space-y-4 p-5">
               {profile.gemini_key_enc ? (
                 <div className="flex items-center justify-between gap-2">
                   <Badge tone="success"><KeyRound className="size-3" /> Key saved (encrypted)</Badge>
-                  <form action={removeGeminiKey}><Button variant="ghost" className="text-danger">Remove</Button></form>
+                  <form action={removeGeminiKey}><Button variant="ghost" className="text-danger" confirm="Remove your Gemini key? You won't be able to generate posts until you add one again." pending="Removing…">Remove</Button></form>
                 </div>
               ) : (
-                plan === "free" && <Notice tone="warning">No key yet: you can't generate posts.</Notice>
+                !platformAi && <Notice tone="warning">No key yet: you can't generate posts.</Notice>
               )}
-              {plan === "free" && (
+              {!platformAi && (
                 <form action={saveGeminiKey} className="space-y-2">
                   <input type="hidden" name="back" value="/app/settings" />
                   <Input name="key" type="password" placeholder="Paste your Gemini API key" autoComplete="off" required />
@@ -125,7 +126,7 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
               <div className="flex items-center justify-between gap-2">
                 <span className="inline-flex items-center gap-2 font-medium"><Send className="size-4 text-[#229ED9]" /> Telegram</span>
                 {profile.telegram_chat_id ? (
-                  <form action={unlinkChannel} className="flex items-center gap-2"><input type="hidden" name="channel" value="telegram" /><Badge tone="success">Linked</Badge><button className="text-xs text-muted hover:text-danger">Unlink</button></form>
+                  <form action={unlinkChannel} className="flex items-center gap-2"><input type="hidden" name="channel" value="telegram" /><Badge tone="success">Linked</Badge><PlainButton className="text-xs text-muted hover:text-danger">Unlink</PlainButton></form>
                 ) : (
                   <Badge>Not linked</Badge>
                 )}
@@ -133,7 +134,7 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
               <div className="flex items-center justify-between gap-2">
                 <span className="inline-flex items-center gap-2 font-medium"><MessageCircle className="size-4 text-[#25D366]" /> WhatsApp</span>
                 {profile.whatsapp_number ? (
-                  <form action={unlinkChannel} className="flex items-center gap-2"><input type="hidden" name="channel" value="whatsapp" /><Badge tone="success">Linked</Badge><button className="text-xs text-muted hover:text-danger">Unlink</button></form>
+                  <form action={unlinkChannel} className="flex items-center gap-2"><input type="hidden" name="channel" value="whatsapp" /><Badge tone="success">Linked</Badge><PlainButton className="text-xs text-muted hover:text-danger">Unlink</PlainButton></form>
                 ) : (
                   <Badge>{whatsappEnabled() ? "Not linked" : "Coming soon"}</Badge>
                 )}
@@ -146,7 +147,7 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
                   {whatsappEnabled() && <p className="text-xs text-muted">WhatsApp: send <b>link {profile.link_code}</b> to our WhatsApp number.</p>}
                 </div>
               ) : (
-                <form action={createLinkCode}><Button variant="secondary" className="w-full">Get a link code</Button></form>
+                <form action={createLinkCode}><Button variant="secondary" className="w-full" pending="Creating code…">Get a link code</Button></form>
               )}
             </div>
           </Card>

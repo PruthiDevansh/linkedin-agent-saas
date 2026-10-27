@@ -1,7 +1,7 @@
-import { CreditCard, FileText, Send, Users } from "lucide-react";
+import { Activity, CreditCard, FileText, Send, UserPlus, Users } from "lucide-react";
 import Link from "next/link";
 import { BarsChart } from "@/components/charts";
-import { Badge, Card, CardHeader, PageHeader, Stat } from "@/components/ui";
+import { Badge, ButtonLink, Card, CardHeader, PageHeader, Stat } from "@/components/ui";
 import { requireAdmin } from "@/lib/session";
 import { getSettings } from "@/lib/settings";
 import { db } from "@/lib/supabase";
@@ -22,12 +22,14 @@ export default async function AdminHome() {
   const since30 = new Date(Date.now() - 30 * 86_400_000).toISOString();
   const since7 = new Date(Date.now() - 7 * 86_400_000).toISOString();
 
-  const [{ data: profiles }, { data: payments }, { data: events }, totalDrafts] = await Promise.all([
+  const [{ data: profiles }, { data: payments }, { data: events }, totalDrafts, { data: latest }] = await Promise.all([
     db().from("profiles").select("id, full_name, email, plan, status, paid_until, created_at, last_active_at"),
     db().from("payments").select("amount, currency, created_at").eq("status", "paid"),
     db().from("usage_events").select("type, user_id, created_at").gte("created_at", since30),
     count("drafts"),
+    db().from("usage_events").select("id, type, created_at, user_id, profiles(email, full_name)").order("created_at", { ascending: false }).limit(8),
   ]);
+  const recent = (latest ?? []) as unknown as { id: number; type: string; created_at: string; user_id: string | null; profiles: { email: string; full_name: string } | null }[];
   const users = profiles ?? [];
   const isPro = (p: (typeof users)[number]) => p.plan === "pro" && (!p.paid_until || new Date(p.paid_until) > new Date());
   const revenue = (since?: string) =>
@@ -54,7 +56,16 @@ export default async function AdminHome() {
 
   return (
     <>
-      <PageHeader title="Admin overview" description={<>Registration: <Badge tone="brand">{MODE_LABEL[settings.registration_mode]}</Badge></>} />
+      <PageHeader
+        title="Admin overview"
+        description={<>Registration: <Badge tone="brand">{MODE_LABEL[settings.registration_mode]}</Badge></>}
+        action={
+          <>
+            <ButtonLink href="/admin/activity" variant="secondary"><Activity className="size-4" /> Activity</ButtonLink>
+            <ButtonLink href="/admin/invites"><UserPlus className="size-4" /> Invite user</ButtonLink>
+          </>
+        }
+      />
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
         <Stat label="Users" value={users.length} hint={`${active7} active in 7 days`} icon={<Users className="size-4" />} />
         <Stat label="Pro users" value={users.filter(isPro).length} hint={`${users.filter((u) => u.status === "pending_payment").length} awaiting payment`} icon={<CreditCard className="size-4" />} />
@@ -84,6 +95,20 @@ export default async function AdminHome() {
           </ul>
         </Card>
       </div>
+
+      <Card className="mt-6">
+        <CardHeader title="Happening now" description="Latest events across all users" action={<Link href="/admin/activity" className="text-sm text-brand hover:underline">See all</Link>} />
+        <ul className="divide-y divide-border text-sm">
+          {recent.map((e) => (
+            <li key={e.id} className="flex items-center gap-3 px-5 py-2.5">
+              <span className="w-28 shrink-0 text-xs tabular-nums text-muted">{formatInZone(e.created_at, "Asia/Kolkata", { day: "numeric", month: "short", hour: "numeric", minute: "2-digit" })}</span>
+              <span className="font-medium capitalize">{e.type.replaceAll("_", " ")}</span>
+              {e.user_id && e.profiles && <Link href={`/admin/users/${e.user_id}`} className="truncate text-muted hover:text-text hover:underline">{e.profiles.full_name || e.profiles.email}</Link>}
+            </li>
+          ))}
+          {!recent.length && <li className="px-5 py-4 text-muted">No activity yet.</li>}
+        </ul>
+      </Card>
     </>
   );
 }

@@ -69,7 +69,7 @@ export async function createNewsDraft(profile: Profile, workspaceId: string, cat
   await checkDailyLimit(profile);
   const ws = await getWorkspace(workspaceId);
   const cat = category ?? categoryForToday(ws.topics, ws.timezone);
-  const key = aiKeyFor(profile);
+  const key = await aiKeyFor(profile);
 
   const { data: used } = await db().from("used_links").select("url").eq("workspace_id", ws.id);
   const [candidates, trending] = await Promise.all([findCandidates(cat, new Set((used ?? []).map((u) => u.url))), fetchTrendingSearches()]);
@@ -97,7 +97,7 @@ export async function createNewsDraft(profile: Profile, workspaceId: string, cat
 export async function createIdeaDraft(profile: Profile, workspaceId: string, idea: string, photo?: { telegramId?: string; path?: string }) {
   await checkDailyLimit(profile);
   const ws = await getWorkspace(workspaceId);
-  const { post, visual } = await writeIdeaPost(aiKeyFor(profile), ws, await authorName(profile.id), idea);
+  const { post, visual } = await writeIdeaPost(await aiKeyFor(profile), ws, await authorName(profile.id), idea);
   const draft = await insertDraft({
     workspace_id: ws.id,
     linkedin_account_id: await defaultAccountId(ws.id),
@@ -118,7 +118,7 @@ export async function createIdeaDraft(profile: Profile, workspaceId: string, ide
 export async function createCarouselDraft(profile: Profile, workspaceId: string, subject: string) {
   await checkDailyLimit(profile);
   const ws = await getWorkspace(workspaceId);
-  const { caption, slides } = await writeCarousel(aiKeyFor(profile), ws, await authorName(profile.id), subject);
+  const { caption, slides } = await writeCarousel(await aiKeyFor(profile), ws, await authorName(profile.id), subject);
   const draft = await insertDraft({
     workspace_id: ws.id,
     linkedin_account_id: await defaultAccountId(ws.id),

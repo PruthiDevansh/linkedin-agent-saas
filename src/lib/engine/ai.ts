@@ -1,6 +1,6 @@
 import { decrypt } from "../crypto";
 import { env } from "../env";
-import { effectivePlan } from "../settings";
+import { getSettings, usesPlatformAi } from "../settings";
 import type { Profile, Slide, Visual, Workspace } from "../types";
 import type { Candidate } from "./sources";
 import { CATEGORIES, type CategoryId } from "./topics";
@@ -10,9 +10,9 @@ const MAX_POST_CHARS = 2800; // LinkedIn allows 3000
 
 export class AiKeyMissingError extends Error {}
 
-// Pro users run on the platform key; free users bring their own Gemini key.
-export function aiKeyFor(profile: Profile): string {
-  if (effectivePlan(profile) === "pro" && env.geminiKey()) return env.geminiKey();
+// Pro users (and anyone the admin switched on) run on the platform key; others bring their own Gemini key.
+export async function aiKeyFor(profile: Profile): Promise<string> {
+  if (usesPlatformAi(await getSettings(), profile)) return env.geminiKey();
   if (profile.gemini_key_enc) return decrypt(profile.gemini_key_enc);
   throw new AiKeyMissingError(
     "Add your free Gemini API key in Settings → AI key (or upgrade to Pro) to generate posts.",

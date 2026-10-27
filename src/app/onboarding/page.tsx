@@ -1,12 +1,13 @@
 import { Check, KeyRound, Sparkles } from "lucide-react";
 import { redirect } from "next/navigation";
 import { Logo } from "@/components/brand";
+import { ImpersonationBanner } from "@/components/impersonation-banner";
 import { PayButtons } from "@/components/pay-buttons";
 import { SubmitButton } from "@/components/submit";
-import { Badge, Card, Flash, Input, Notice } from "@/components/ui";
+import { Badge, Card, Flash, Input, Notice, PlainButton } from "@/components/ui";
 import { env } from "@/lib/env";
 import { requireUser } from "@/lib/session";
-import { effectivePlan, getSettings, periodLabel } from "@/lib/settings";
+import { effectivePlan, getSettings, needsOwnKey, periodLabel } from "@/lib/settings";
 import { signOut } from "../(auth)/actions";
 import { saveGeminiKey } from "../app/actions";
 
@@ -29,14 +30,16 @@ export default async function OnboardingPage({ searchParams }: { searchParams: P
   const showPro = payEnabled && (mustPay || settings.registration_mode !== "free_byok" || params.upgrade === "1");
 
   // Nothing to choose: go straight in.
-  if (!mustPay && !params.upgrade && (plan === "pro" || profile.gemini_key_enc)) redirect("/app");
+  if (!mustPay && !params.upgrade && !needsOwnKey(settings, profile)) redirect("/app");
   const period = periodLabel(settings.billing_period_days);
 
   return (
+    <>
+    <ImpersonationBanner />
     <div className="min-h-dvh px-4 py-8 sm:px-8">
       <div className="mx-auto flex max-w-4xl items-center justify-between">
         <Logo />
-        <form action={signOut}><button className="text-sm text-muted hover:text-text">Log out</button></form>
+        <form action={signOut}><PlainButton className="text-sm text-muted hover:text-text">Log out</PlainButton></form>
       </div>
       <div className="mx-auto mt-10 max-w-4xl">
         <h1 className="text-center text-3xl font-semibold tracking-tight">{mustPay ? "Activate your account" : "Choose how you'd like to start"}</h1>
@@ -94,5 +97,6 @@ export default async function OnboardingPage({ searchParams }: { searchParams: P
         </div>
       </div>
     </div>
+    </>
   );
 }

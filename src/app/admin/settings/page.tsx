@@ -22,7 +22,7 @@ export default async function AdminSettings({ searchParams }: { searchParams: Pr
   const integrations: [string, boolean, string][] = [
     ["Supabase", true, "Database & login"],
     ["Encryption key", !!process.env.ENCRYPTION_KEY, "Protects tokens and user keys"],
-    ["Platform Gemini key", !!env.geminiKey(), "Used for Pro users"],
+    ["Platform Gemini key", !!env.geminiKey(), "Used for Pro and built-in AI users"],
     ["LinkedIn app", !!(process.env.LINKEDIN_CLIENT_ID && process.env.LINKEDIN_CLIENT_SECRET), "Posting"],
     ["Telegram bot", !!(env.telegramToken() && env.telegramBotUsername()), "Chat approval"],
     ["WhatsApp Cloud API", !!(env.whatsappToken() && env.whatsappPhoneNumberId() && env.whatsappAppSecret()), "Chat approval (optional)"],
@@ -48,6 +48,29 @@ export default async function AdminSettings({ searchParams }: { searchParams: Pr
                   <p className="mt-1 text-xs text-muted">{m.text}</p>
                 </label>
               ))}
+            </div>
+          </Card>
+
+          <Card>
+            <CardHeader title="Sign-up & AI access" />
+            <div className="space-y-3 p-5">
+              <label className="flex items-start gap-3 rounded-xl border border-border p-4 text-sm has-[:checked]:border-brand has-[:checked]:bg-brand-soft">
+                <input type="checkbox" name="free_platform_ai" defaultChecked={!!s.free_platform_ai} className="mt-0.5 size-4 accent-[var(--brand)]" />
+                <span>
+                  <span className="font-medium">Built-in AI for every free user</span>
+                  <span className="mt-0.5 block text-xs text-muted">Free users write posts with the platform Gemini key, no own key needed. Leave off to switch it on per user instead (Users → Built-in AI).</span>
+                </span>
+              </label>
+              <label className="flex items-start gap-3 rounded-xl border border-border p-4 text-sm has-[:checked]:border-brand has-[:checked]:bg-brand-soft">
+                <input type="checkbox" name="require_email_confirm" defaultChecked={!!s.require_email_confirm} className="mt-0.5 size-4 accent-[var(--brand)]" />
+                <span>
+                  <span className="font-medium">Require email confirmation</span>
+                  <span className="mt-0.5 block text-xs text-muted">
+                    Off (recommended): accounts work instantly and no emails are sent, so sign-ups never hit Supabase&apos;s hourly email limit.
+                    Turn on only after adding your own SMTP in Supabase → Authentication → Emails. If the limit is hit anyway, sign-ups still go through.
+                  </span>
+                </span>
+              </label>
             </div>
           </Card>
 
@@ -108,8 +131,8 @@ export default async function AdminSettings({ searchParams }: { searchParams: Pr
           <Card>
             <CardHeader title="One-time setup" />
             <div className="space-y-3 p-5">
-              <form action={setupTelegram}><Button variant="secondary" className="w-full">Connect Telegram bot</Button></form>
-              <form action={setupScheduler}><Button variant="secondary" className="w-full">Start 15-min scheduler</Button></form>
+              <form action={setupTelegram}><Button variant="secondary" className="w-full" pending="Connecting…">Connect Telegram bot</Button></form>
+              <form action={setupScheduler}><Button variant="secondary" className="w-full" pending="Starting…">Start 15-min scheduler</Button></form>
               <Notice tone="neutral">Run both once after deploying, and again if you change the site address.</Notice>
             </div>
           </Card>

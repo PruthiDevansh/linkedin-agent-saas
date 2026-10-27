@@ -2,19 +2,19 @@ import { cookies } from "next/headers";
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { Logo } from "@/components/brand";
+import { ImpersonationBanner } from "@/components/impersonation-banner";
 import { Shell } from "@/components/shell";
-import { Notice } from "@/components/ui";
+import { Notice, PlainButton } from "@/components/ui";
 import { currentWorkspace, requireActiveUser } from "@/lib/session";
-import { effectivePlan, getSettings } from "@/lib/settings";
+import { effectivePlan, getSettings, needsOwnKey } from "@/lib/settings";
 import { signOut } from "../(auth)/actions";
 import { switchWorkspace } from "./actions";
 
 export default async function AppLayout({ children }: { children: ReactNode }) {
   const profile = await requireActiveUser();
-  const ws = await currentWorkspace(profile, (await cookies()).get("ws")?.value);
-  const settings = await getSettings();
+  const [ws, settings] = await Promise.all([currentWorkspace(profile, (await cookies()).get("ws")?.value), getSettings()]);
   const plan = effectivePlan(profile);
-  const needsKey = plan === "free" && !profile.gemini_key_enc;
+  const needsKey = needsOwnKey(settings, profile);
 
   const switcher =
     ws.workspaces.length > 1 ? (
@@ -31,7 +31,7 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
             </option>
           ))}
         </select>
-        <button type="submit" className="mt-1 w-full text-xs text-muted hover:text-text">Switch workspace</button>
+        <PlainButton type="submit" className="mt-1 w-full text-xs text-muted hover:text-text">Switch workspace</PlainButton>
       </form>
     ) : (
       <div className="rounded-lg bg-surface-2 px-3 py-2 text-sm font-medium">{ws.workspace.name}</div>
@@ -43,6 +43,7 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
       logo={<Logo href="/app" />}
       user={{ name: profile.full_name, email: profile.email, plan, isAdmin: profile.role === "admin" }}
       workspaceSwitcher={switcher}
+      banner={<ImpersonationBanner />}
       signOut={signOut}
     >
       {settings.announcement && <div className="mb-4"><Notice>{settings.announcement}</Notice></div>}
