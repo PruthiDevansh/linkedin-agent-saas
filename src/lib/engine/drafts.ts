@@ -5,7 +5,7 @@ import { aiKeyFor, writeCarousel, writeIdeaPost, writeNewsPost } from "./ai";
 import { LinkedInAuthError, publish, type Attachment } from "./linkedin";
 import { authorName, draftCarouselPdf, draftImage } from "./media";
 import { fetchTrendingSearches, findCandidates } from "./sources";
-import { CATEGORIES, categoryForToday, type CategoryId } from "./topics";
+import { categoryForToday, topicLabel } from "./topics";
 import { nextImageKind } from "./visual";
 
 export class LimitError extends Error {}
@@ -65,7 +65,7 @@ export async function defaultAccountId(workspaceId: string): Promise<string | nu
 
 // ------------------------------------------------------------------ creation
 
-export async function createNewsDraft(profile: Profile, workspaceId: string, category?: CategoryId): Promise<Draft | null> {
+export async function createNewsDraft(profile: Profile, workspaceId: string, category?: string): Promise<Draft | null> {
   await checkDailyLimit(profile);
   const ws = await getWorkspace(workspaceId);
   const cat = category ?? categoryForToday(ws.topics, ws.timezone);
@@ -208,5 +208,5 @@ export async function publishDraft(draftId: string, actorId: string | null): Pro
 export function categoryLabel(draft: Draft): string {
   if (draft.format === "carousel") return "Carousel";
   if (draft.origin === "idea") return "Your idea";
-  return draft.category && draft.category in CATEGORIES ? CATEGORIES[draft.category as CategoryId].label : "Post";
+  return draft.category ? topicLabel(draft.category) : "Post";
 }

@@ -1,5 +1,5 @@
 import Parser from "rss-parser";
-import { CATEGORIES, type CategoryId } from "./topics";
+import { topicInfo } from "./topics";
 
 export type Candidate = {
   title: string;
@@ -18,6 +18,7 @@ const parser = new Parser({ timeout: 10_000, headers: { "User-Agent": USER_AGENT
 async function fromFeed(feedUrl: string, sinceMs: number): Promise<Candidate[]> {
   try {
     const feed = await parser.parseURL(feedUrl);
+    const googleNews = new URL(feedUrl).hostname === "news.google.com";
     return (feed.items ?? [])
       .filter((item) => item.link && item.title)
       .filter((item) => {
@@ -25,13 +26,17 @@ async function fromFeed(feedUrl: string, sinceMs: number): Promise<Candidate[]> 
         return Number.isNaN(time) || time >= sinceMs;
       })
       .slice(0, 8)
-      .map((item) => ({
-        title: item.title!.trim(),
-        url: item.link!,
-        source: feed.title?.trim() || new URL(feedUrl).hostname,
-        snippet: (item.contentSnippet ?? "").replace(/\s+/g, " ").trim().slice(0, 400),
-        publishedAt: item.isoDate,
-      }));
+      .map((item) => {
+        // Google News titles end in " - Publisher" and the snippet just repeats them.
+        const [, title, publisher] = googleNews ? (item.title!.trim().match(/^(.+) - ([^-]+)$/) ?? []) : [];
+        return {
+          title: (title ?? item.title!).trim(),
+          url: item.link!,
+          source: publisher?.trim() || feed.title?.trim() || new URL(feedUrl).hostname,
+          snippet: googleNews ? "" : (item.contentSnippet ?? "").replace(/\s+/g, " ").trim().slice(0, 400),
+          publishedAt: item.isoDate,
+        };
+      });
   } catch (err) {
     console.warn(`Feed failed: ${feedUrl}:`, err instanceof Error ? err.message : err);
     return [];
@@ -69,9 +74,9 @@ function newestFirst(a: Candidate, b: Candidate) {
   return Date.parse(b.publishedAt ?? "0") - Date.parse(a.publishedAt ?? "0");
 }
 
-// Fresh headlines for a category, most "viral" first. Skips links already used.
-export async function findCandidates(category: CategoryId, exclude: Set<string>): Promise<Candidate[]> {
-  const cat = CATEGORIES[category];
+// Fresh headlines for a topic, most "viral" first. Skips links already used.
+export async function findCandidates(topic: string, exclude: Set<string>): Promise<Candidate[]> {
+  const cat = topicInfo(topic);
   let found: Candidate[] = [];
 
   // Prefer the last 3 days; widen to a week on slow news days.

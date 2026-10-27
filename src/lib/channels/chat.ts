@@ -15,7 +15,7 @@ import {
   updateDraft,
 } from "../engine/drafts";
 import { draftCarouselPdf, draftImage, savePhoto } from "../engine/media";
-import { CATEGORIES, CATEGORY_IDS, isCategoryId } from "../engine/topics";
+import { CATEGORY_IDS, cleanTopic, cleanTopics, isCategoryId, topicLabel } from "../engine/topics";
 import { IMAGE_LABEL } from "../engine/visual";
 import { telegramChannel } from "./telegram";
 import type { ChatButton, ChatChannel, ChatImage } from "./types";
@@ -25,7 +25,7 @@ const HELP = (app: string) =>
   [
     `🤖 ${app}: your LinkedIn growth agent. Nothing is posted without your OK.`,
     "",
-    "/draft: post from today's trending news (/draft fintech for a topic)",
+    "/draft: post from today's trending news (/draft <any topic>, e.g. /draft fintech or /draft nursing)",
     "/write <idea>: turn your idea into an engaging post",
     "/carousel <subject>: make a swipeable carousel",
     "📷 Photo + caption: a post about your photo",
@@ -135,16 +135,31 @@ export async function handleText(profile: Profile, ch: ChatChannel, raw: string)
 
   await guard(ch, async () => {
     if (command === "start" || command === "help") return ch.text(HELP(env.appName()));
-    if (command === "topics") return ch.text(CATEGORY_IDS.map((id) => `${id}: ${CATEGORIES[id].label}`).join("\n"));
+    if (command === "topics") {
+      const { data: ws } = await db().from("workspaces").select("topics").eq("id", wsId).maybeSingle();
+      const mine = cleanTopics(ws?.topics ?? []);
+      return ch.text(
+        [
+          "⭐ Your topics:",
+          ...(mine.length ? mine.map((t) => `${t}${isCategoryId(t) ? ` (${topicLabel(t)})` : ""}`) : ["(none yet)"]),
+          "",
+          "More: " + CATEGORY_IDS.filter((id) => !mine.includes(id)).join(", "),
+          "",
+          "Any topic works, e.g. /draft supreme court judgments",
+          `Edit your topics: ${env.appUrl()}/app/settings`,
+        ].join("\n"),
+      );
+    }
     if (command === "status") {
       const { data: accounts } = await db().from("linkedin_accounts").select("name, expires_at").eq("workspace_id", wsId);
       const lines = (accounts ?? []).map((a) => `🔗 ${a.name}: ${Math.max(0, Math.floor((new Date(a.expires_at).getTime() - Date.now()) / 86_400_000))} days left`);
       return ch.text([`👤 ${profile.email} · plan: ${profile.plan}`, ...(lines.length ? lines : ["🔗 No LinkedIn connected yet."]), `Manage: ${env.appUrl()}/app/accounts`].join("\n"));
     }
     if (command === "draft") {
-      if (arg && !isCategoryId(arg)) return ch.text(`Unknown topic "${arg}". Send /topics to see the list.`);
+      const topic = arg ? cleanTopic(isCategoryId(arg.toLowerCase()) ? arg.toLowerCase() : arg) : null;
+      if (arg && !topic) return ch.text(`"${arg}" isn't a usable topic. Send /topics for ideas.`);
       await ch.text("🔎 Finding today's trending news…");
-      const draft = await createNewsDraft(profile, wsId, arg && isCategoryId(arg) ? arg : undefined);
+      const draft = await createNewsDraft(profile, wsId, topic ?? undefined);
       return draft ? showDraft(ch, draft) : ch.text("😴 No fresh news for that topic this week. Try another one.");
     }
     if (command === "write" || command === "idea") {
@@ -216,7 +231,7 @@ export async function handleAction(profile: Profile, ch: ChatChannel, action: st
           ? await createCarouselDraft(profile, draft.workspace_id, draft.idea)
           : draft.origin === "idea" && draft.idea
             ? await createIdeaDraft(profile, draft.workspace_id, draft.idea)
-            : await createNewsDraft(profile, draft.workspace_id, draft.category && isCategoryId(draft.category) ? draft.category : undefined);
+            : await createNewsDraft(profile, draft.workspace_id, draft.category ?? undefined);
       return next ? showDraft(ch, next) : ch.text("😴 No fresh news for that topic right now.");
     }
     if (action === "open") return ch.text(`🗓 Edit, schedule or see analytics here:\n${env.appUrl()}/app/drafts/${draft.id}`);

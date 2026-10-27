@@ -3,7 +3,7 @@ import { env } from "../env";
 import { getSettings, usesPlatformAi } from "../settings";
 import type { Profile, Slide, Visual, Workspace } from "../types";
 import type { Candidate } from "./sources";
-import { CATEGORIES, type CategoryId } from "./topics";
+import { cleanTopics, topicInfo } from "./topics";
 import { normalizeVisual, VISUAL_INSTRUCTIONS } from "./visual";
 
 const MAX_POST_CHARS = 2800; // LinkedIn allows 3000
@@ -106,11 +106,11 @@ export async function writeNewsPost(
   key: string,
   ws: Workspace,
   authorName: string,
-  category: CategoryId,
+  category: string,
   candidates: Candidate[],
   trending: string[],
 ): Promise<NewsPost> {
-  const cat = CATEGORIES[category];
+  const cat = topicInfo(category);
   const system = [
     styleRules(ws, authorName),
     "",
@@ -179,6 +179,24 @@ export async function writeCarousel(key: string, ws: Workspace, authorName: stri
     .map((s) => ({ title: s.title.trim().slice(0, 90), body: (s.body ?? "").trim().slice(0, 260) }));
   if (slides.length < 3 || !json.caption) throw new Error("The AI could not build the carousel. Please try again.");
   return { caption: json.caption.trim().slice(0, MAX_POST_CHARS), slides };
+}
+
+// Topic ideas that fit the author's profession, e.g. a lawyer gets "Supreme Court judgments".
+export async function suggestTopics(key: string, about: string, audience: string): Promise<string[]> {
+  const system = [
+    "You suggest news topics a professional can post about on LinkedIn, based on their profile.",
+    "Fit their actual field: a lawyer gets legal topics, a doctor medical ones, a teacher education ones. Do not default to tech.",
+    "Each topic is 1 to 5 words and works as a Google News search that returns fresh stories every week.",
+  ].join("\n");
+  const prompt = [
+    `About the author: ${about || "(not given)"}`,
+    `Their audience: ${audience || "(not given)"}`,
+    "",
+    'Reply with JSON only: {"topics": string[]} with 8 topics, most relevant first.',
+  ].join("\n");
+  const json = (await callAi(key, system, prompt)) as { topics?: unknown };
+  const topics = Array.isArray(json.topics) ? json.topics.filter((t): t is string => typeof t === "string") : [];
+  return cleanTopics(topics).slice(0, 8);
 }
 
 // Quick key check used when a user saves their Gemini key.

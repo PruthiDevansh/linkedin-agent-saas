@@ -4,7 +4,7 @@ import Link from "next/link";
 import { SubmitButton } from "@/components/submit";
 import { Badge, Button, ButtonLink, Card, CardHeader, Flash, Input, Label, Notice, PageHeader, Select, Textarea, PlainButton } from "@/components/ui";
 import { whatsappEnabled } from "@/lib/channels/whatsapp";
-import { CATEGORIES, CATEGORY_IDS } from "@/lib/engine/topics";
+import { TopicPicker } from "@/components/topic-picker";
 import { env } from "@/lib/env";
 import { canEdit, currentWorkspace, requireActiveUser } from "@/lib/session";
 import { effectivePlan, getSettings, periodLabel, usesPlatformAi } from "@/lib/settings";
@@ -43,7 +43,7 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
               </div>
               <div>
                 <Label htmlFor="about" hint="(who you are, what you do)">About</Label>
-                <Textarea id="about" name="about" defaultValue={ws.about} maxLength={600} placeholder="Backend developer building fintech payment systems in India. Interested in AI and startups." />
+                <Textarea id="about" name="about" defaultValue={ws.about} maxLength={600} placeholder="e.g. Advocate at the Delhi High Court, 10 years in civil and property law. Or: backend developer building fintech payment systems." />
               </div>
               <div>
                 <Label htmlFor="audience">Audience</Label>
@@ -54,15 +54,8 @@ export default async function SettingsPage({ searchParams }: { searchParams: Pro
                 <Textarea id="voice" name="voice" defaultValue={ws.voice} maxLength={600} className="min-h-20" />
               </div>
               <div>
-                <Label>Topics for daily drafts</Label>
-                <div className="grid gap-2 sm:grid-cols-2">
-                  {CATEGORY_IDS.map((id) => (
-                    <label key={id} className="flex items-center gap-2 rounded-lg border border-border px-3 py-2 text-sm has-[:checked]:border-brand has-[:checked]:bg-brand-soft">
-                      <input type="checkbox" name="topics" value={id} defaultChecked={ws.topics.includes(id)} className="size-4 accent-[var(--brand)]" />
-                      {CATEGORIES[id].label}
-                    </label>
-                  ))}
-                </div>
+                <Label hint="(what your posts are about)">Topics for daily drafts</Label>
+                <TopicPicker initial={ws.topics} disabled={!editable} />
               </div>
               <div className="grid gap-4 sm:grid-cols-3">
                 <div>

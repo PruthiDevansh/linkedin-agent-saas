@@ -1,5 +1,6 @@
-// Topics users can pick for their daily drafts. Each has news feeds and
-// Hacker News searches (HN points are our "is this going viral?" signal).
+// Topics users can pick for their daily drafts. The presets have hand-picked news
+// feeds and Hacker News searches (HN points are our "is this going viral?" signal).
+// Any other text is a custom topic (law, medicine, teaching...) read from Google News.
 
 export type CategoryId =
   | "ai-models"
@@ -99,13 +100,50 @@ export const CATEGORIES: Record<CategoryId, Category> = {
 
 export const CATEGORY_IDS = Object.keys(CATEGORIES) as CategoryId[];
 
+export const MAX_TOPICS = 12;
+
 export function isCategoryId(value: string): value is CategoryId {
   return (CATEGORY_IDS as string[]).includes(value);
 }
 
+// Tidy a user-typed topic; null if it can't be used.
+export function cleanTopic(value: string): string | null {
+  const topic = value.replace(/[^\p{L}\p{N}&+.#'/ -]/gu, " ").replace(/\s+/g, " ").trim().slice(0, 50);
+  return topic.length >= 2 ? topic : null;
+}
+
+export function cleanTopics(values: string[]): string[] {
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (const value of values) {
+    const topic = cleanTopic(value);
+    if (topic && !seen.has(topic.toLowerCase())) {
+      seen.add(topic.toLowerCase());
+      out.push(topic);
+    }
+  }
+  return out.slice(0, MAX_TOPICS);
+}
+
+const googleNews = (query: string) =>
+  `https://news.google.com/rss/search?q=${encodeURIComponent(`${query} when:7d`)}&hl=en-IN&gl=IN&ceid=IN:en`;
+
+// Feeds, searches and writing angle for a preset or custom topic.
+export function topicInfo(topic: string): Category {
+  if (isCategoryId(topic)) return CATEGORIES[topic];
+  return {
+    label: topic,
+    angle: `Explain the news in plain words for people who work in or care about ${topic}: what happened, why it matters to them, and one practical takeaway or opinion from the author's point of view.`,
+    feeds: [googleNews(topic), googleNews(`${topic} India`)],
+    hnQueries: [],
+  };
+}
+
+export const topicLabel = (topic: string) => topicInfo(topic).label;
+
 // Rotate through the workspace's chosen topics, one per day.
-export function categoryForToday(topics: string[], timezone: string, now = new Date()): CategoryId {
-  const valid = topics.filter(isCategoryId);
+export function categoryForToday(topics: string[], timezone: string, now = new Date()): string {
+  const valid = cleanTopics(topics);
   if (!valid.length) return "ai-models";
   const day = Number(new Intl.DateTimeFormat("en-CA", { timeZone: timezone, day: "numeric" }).format(now));
   return valid[day % valid.length];
